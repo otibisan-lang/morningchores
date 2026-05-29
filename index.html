@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朝の家事リスト Ver.24</title>
+    <style>
+        :root {
+            --bg-color: #fcfcfc;
+            --wb-border: #333;
+            --posca-pink: #e4007f;
+            --posca-yellow: #fff100;
+            --color-yuma: #ff9800;
+            --color-shiori: #00bcd4;
+            --color-junko: #4caf50;
+            --color-takuya: #f44336;
+        }
+
+        body { font-family: sans-serif; background-color: #d0d0d0; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        #app { background-color: var(--bg-color); width: 98vw; min-height: 95vh; border: 8px solid #444; border-radius: 20px; padding: 20px; box-sizing: border-box; }
+
+        .header-grid { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px dashed #333; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.4rem; }
+
+        .progress-box { width: 30%; text-align: center; }
+        .progress-bar-bg { background: #eee; border: 3px solid #333; height: 25px; border-radius: 12px; overflow: hidden; display: flex; width: 100%; }
+        .progress-segment { height: 100%; }
+
+        .scoreboard { display: flex; gap: 10px; }
+        .score-card { border: 3px solid #333; border-radius: 10px; padding: 5px 15px; text-align: center; background: white; min-width: 60px; }
+        .score-points { font-size: 1.2rem; font-weight: bold; }
+        .score-reserved { font-size: 0.72rem; color: #555; margin-top: 4px; font-weight: bold; }
+
+        .category-title { font-size: 1.1rem; font-weight: bold; background: #eee; padding: 5px 15px; border-radius: 5px; border-left: 8px solid #333; margin: 20px 0 10px 0; }
+        .task-grid { display: flex; flex-wrap: wrap; gap: 15px; }
+        .task-card { border: 3px solid #333; border-radius: 15px; padding: 15px; background: white; width: 200px; display: flex; flex-direction: column; justify-content: space-between; }
+        .task-card--weekday { background: #2a2a2a; border-color: #111; color: white; }
+        .task-card--weekday .task-points { background: #555; border-color: #888; color: white; }
+        
+        .task-title { font-weight: bold; margin-bottom: 10px; }
+        .task-points { background: var(--posca-yellow); border: 2px solid #333; border-radius: 10px; padding: 2px 5px; font-size: 0.8rem; font-weight: bold; }
+        .reserved-label { margin-top: 10px; padding: 3px; border-radius: 5px; text-align: center; color: white; font-size: 0.8rem; font-weight: bold; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        button { padding: 10px; border: 3px solid #333; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-done { background: #444; color: white; }
+        .category-title-done { border-left-color: #888; color: #555; background: #e8e8e8; }
+        .done-by-title { font-size: 1rem; font-weight: bold; padding: 6px 14px; margin: 16px 0 10px 0; border-left: 8px solid #333; background: #f5f5f5; border-radius: 6px; }
+        .task-card-done { background: #f0f0f0; border-color: #888; }
+        .task-card-done .task-title { color: #666; text-decoration: line-through; }
+        .btn-undo { background: #e8e8e8; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border: 5px solid #333; border-radius: 20px; width: 300px; text-align: center; }
+        .ticket-modal { z-index: 110; }
+        .ticket-modal-content { width: min(380px, 92vw); box-sizing: border-box; }
+        .ticket-modal-text { font-size: 1.15rem; font-weight: bold; margin: 0 0 20px 0; line-height: 1.5; }
+        .btn-ticket-yes { width: 100%; padding: 14px; border: 3px solid #333; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; background: #4caf50; color: white; }
+        .all-clear-wrap { text-align: center; padding: 28px 18px; margin-bottom: 12px; border: 4px solid #333; border-radius: 18px; background: linear-gradient(180deg, #f1f8e9 0%, #fffde7 100%); }
+        .all-clear-main { font-size: 1.45rem; font-weight: bold; margin-bottom: 14px; line-height: 1.4; }
+        .all-clear-sub { font-size: 1.05rem; color: #333; line-height: 1.5; font-weight: bold; }
+        .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+
+        #sticky-stats {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+            background: white;
+            border-bottom: 4px solid #333;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            transform: translateY(-110%);
+            transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        #sticky-stats.is-visible { transform: translateY(0); }
+        #sticky-stats .progress-bar-bg { height: 18px; flex: 1; min-width: 80px; }
+        #sticky-stats .score-card { padding: 3px 10px; min-width: 48px; }
+        #sticky-stats .score-points { font-size: 1rem; }
+        #sticky-stats .score-reserved { font-size: 0.65rem; }
+
+        .weekday-tasks-section { margin-top: 28px; margin-bottom: 8px; }
+        .weekday-tasks-section > .weekday-panel-title { margin-top: 0; margin-bottom: 10px; }
+        .btn-weekday-toggle { width: 100%; padding: 12px 16px; margin-bottom: 10px; border: 3px solid #333; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; background: #e3f2fd; }
+        .btn-new-day { padding: 6px 14px; font-size: 0.78rem; border: 2px solid #333; border-radius: 8px; background: #fff3e0; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .weekday-tasks-panel { margin-bottom: 0; }
+        .weekday-tasks-panel--hidden { display: none; }
+        .weekday-tasks-panel--animating { animation: weekdayPanelPop 0.22s ease-out; }
+        @keyframes weekdayPanelPop {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .weekday-panel-title { font-weight: bold; margin: 0 0 10px 0; font-size: 1rem; border-bottom: 3px dashed #333; padding-bottom: 8px; }
+        .weekday-panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+        .weekday-column { border: 3px solid #333; border-radius: 12px; padding: 8px 8px 10px; background: #f7f7f7; font-size: 0.72rem; line-height: 1.35; }
+        .weekday-column-today { border-color: var(--posca-pink); background: #fff8fc; box-shadow: inset 0 0 0 2px rgba(228, 0, 127, 0.25); }
+        .weekday-column-head { font-weight: bold; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px dashed #bbb; font-size: 0.85rem; }
+        .weekday-badge-today { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: var(--posca-pink); color: white; font-size: 0.65rem; vertical-align: middle; }
+        .weekday-task-list { margin: 0; padding-left: 1.1em; }
+        .weekday-task-list li { margin: 5px 0; }
+        .weekday-task-pts { font-size: 0.62rem; background: var(--posca-yellow); border: 1px solid #333; padding: 0 3px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+        .weekday-task-cat { color: #555; font-size: 0.62rem; }
+        .weekday-panel-sub { font-size: 0.72rem; color: #555; margin: -4px 0 10px 0; line-height: 1.4; }
+        .weekday-task-scope { display: block; font-size: 0.62rem; color: #333; margin-top: 3px; font-weight: bold; line-height: 1.3; }
+        .weekday-column-empty { font-size: 0.68rem; color: #888; font-style: italic; margin: 0; padding-left: 0.2em; list-style: none; }
+
+        /* ========== 予約ガチャモーダル ========== */
+        .omakase-modal-content {
+            width: min(380px, 92vw);
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .omakase-modal-content h2 {
+            text-align: center;
+            margin: 0 0 6px 0;
+            font-size: 1.2rem;
+        }
+        .omakase-modal-desc {
+            font-size: 0.82rem;
+            color: #555;
+            margin: 0 0 16px 0;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .omakase-player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .omakase-player-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 3px solid #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            user-select: none;
+        }
+        .omakase-player-row.is-checked {
+            border-color: #333;
+            background: #f9f9f9;
+        }
+        .omakase-player-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid #ccc;
+            flex-shrink: 0;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .omakase-player-row.is-checked .omakase-player-dot {
+            border-color: #333;
+            background: #333;
+        }
+        .omakase-player-name {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .omakase-player-badge {
+            margin-left: auto;
+            font-size: 0.72rem;
+            color: #888;
+            font-weight: bold;
+        }
+        .btn-omakase-run {
+            width: 100%;
+            padding: 14px;
+            border: 3px solid #333;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            cursor: pointer;
+            background: #333;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .btn-omakase-run:disabled {
+            background: #ccc;
+            border-color: #bbb;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .omakase-result-box {
+            display: none;
+            margin-top: 14px;
+            padding: 12px;
+            border: 3px dashed #333;
+            border-radius: 12px;
+            background: #fffde7;
+            font-size: 0.82rem;
+            line-height: 1.7;
+        }
+        .omakase-result-box.is-visible { display: block; }
+        .omakase-result-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px dashed #ddd; }
+        .omakase-result-row:last-child { border-bottom: none; }
+        .omakase-result-name { font-weight: bold; }
+        .omakase-result-pts { font-size: 0.75rem; color: #555; }
+
+        /* おまかせボタン（ヘッダー内） */
+        .btn-omakase { padding: 6px 14px; font-size: 0.78rem; border: 2px solid #333; border-radius: 8px; background: #e8f5e9; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-undo-last { padding: 6px 14px; font-size: 0.78rem; border: 2px solid #333; border-radius: 8px; background: #f3e5f5; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-undo-last:disabled { opacity: 0.45; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="header-grid">
+        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+            <h1 id="today-title">朝の家事リスト</h1>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-new-day" onclick="resetAndReload()">🔄 日付更新</button>
+                <button type="button" class="btn-omakase" onclick="openOmakaseModal()">🎲 予約ガチャ</button>
+                <button type="button" id="btn-undo-last" class="btn-undo-last" onclick="undoLastAction()" disabled>↩ 1つ戻す</button>
+            </div>
+        </div>
+        <div class="progress-box">
+            <div id="progress-percent" style="font-weight:bold; font-size:0.8rem;">進捗 0%</div>
+            <div id="progress-container" class="progress-bar-bg"></div>
+        </div>
+        <div class="scoreboard" id="scoreboard"></div>
+    </div>
+
+    <div id="sticky-stats">
+        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+            <span id="sticky-progress-percent" style="font-weight:bold; font-size:0.8rem; white-space:nowrap;">進捗 0%</span>
+            <div id="sticky-progress-container" class="progress-bar-bg"></div>
+        </div>
+        <div class="scoreboard" id="sticky-scoreboard"></div>
+    </div>
+
+    <div id="main-content"></div>
+
+    <div class="weekday-tasks-section">
+        <div class="weekday-panel-title">曜日ごとのタスク（曜日限定のみ）</div>
+        <button type="button" id="weekday-toggle-btn" class="btn-weekday-toggle" onclick="toggleWeekdayPanel()" aria-expanded="false" aria-controls="weekday-tasks-panel-body">表示</button>
+        <div id="weekday-tasks-panel-body" class="weekday-tasks-panel weekday-tasks-panel--hidden" aria-label="曜日別のタスク一覧（詳細）" aria-hidden="true" role="region"></div>
+    </div>
+
+    <button onclick="confirmReset()" style="width: 100%; margin-top: 50px; padding: 20px; background: var(--posca-pink); color: white; font-size: 1.2rem; border-radius: 15px;">
+        朝のリセット (新しく作り直す)
+    </button>
+</div>
+
+<!-- プレイヤー選択モーダル -->
+<div id="playerModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle">だれ？</h2>
+        <div id="playerOptions" class="modal-btns"></div>
+        <div id="modalReserveClear" style="display: none; margin-top: 15px;">
+            <button type="button" style="width: 100%; padding: 10px; border: 3px solid #333; border-radius: 10px; font-weight: bold; cursor: pointer; background: #e8e8e8;" onclick="clearReservationFromModal()">予約をキャンセル</button>
+        </div>
+        <button style="margin-top: 20px; width: 100%;" onclick="closeModal()">キャンセル</button>
+    </div>
+</div>
+
+<!-- チケットモーダル -->
+<div id="ticketModal" class="modal ticket-modal" aria-modal="true" role="dialog" aria-labelledby="ticketModalQuestion">
+    <div class="modal-content ticket-modal-content">
+        <p id="ticketModalQuestion" class="ticket-modal-text">子どもたちはチケットをうけとりましたか？</p>
+        <button type="button" class="btn-ticket-yes" onclick="onTicketModalYes()">はい</button>
+    </div>
+</div>
+
+<!-- 予約ガチャモーダル -->
+<div id="omakaseModal" class="modal" aria-modal="true" role="dialog">
+    <div class="modal-content omakase-modal-content">
+        <h2>🎲 予約ガチャ</h2>
+        <p class="omakase-modal-desc">ランダムに振り分けるプレイヤーを選んでください。<br>デフォルト予約・手動予約済みのタスクはそのままにします。</p>
+        <div class="omakase-player-list" id="omakasePlayerList"></div>
+        <button type="button" class="btn-omakase-run" id="omakaseRunBtn" onclick="runOmakase()">この人たちに振り分ける</button>
+        <div class="omakase-result-box" id="omakaseResultBox"></div>
+        <button type="button" style="width:100%; background:#e8e8e8; margin-top:4px;" onclick="closeOmakaseModal()">閉じる</button>
+    </div>
+</div>
+
+<script>
+    var players = [
+        { name: "ゆうま", color: "var(--color-yuma)" },
+        { name: "しおり", color: "var(--color-shiori)" },
+        { name: "じゅんこ", color: "var(--color-junko)" },
+        { name: "たくや", color: "var(--color-takuya)" }
+    ];
+    
+    var todayNum = new Date().getDay();
+    var days = ["日", "月", "火", "水", "木", "金", "土"];
+
+    var masterTasks = [
+        { title: "ゴミ箱がいっぱいなら捨てる", points: 10, cat: "第一部" },
+        { title: "その日のゴミを玄関へ", points: 10, cat: "第一部", cond: function(d){ return d >= 1 && d <= 5; } },
+        { title: "布団の乾燥セット", points: 10, cat: "第一部", cond: function(d){ return d === 1; } },
+        { title: "寝具類の洗濯", points: 10, cat: "第一部", cond: function(d){ return d === 6; } },
+        { title: "プラゴミを袋に入れる", points: 10, cat: "第三部", cond: function(d){ return d === 2; } },
+        { title: "賞味期限チェック・3分", points: 10, cat: "第三部", cond: function(d){ return d === 3; } },
+        { title: "玄関掃除", points: 10, cat: "第三部", cond: function(d){ return d === 4; } },
+        { title: "魚焼きグリル洗浄・スポンジ交換", points: 30, cat: "第三部", cond: function(d){ return d === 4; } },
+        { title: "ベジータを洗う", points: 10, cat: "第三部", cond: function(d){ return d === 5; } },
+        { title: "化粧・外出準備（じゅんこ）", points: 0, cat: "第三部" },
+        { title: "紙ごみをまとめる", points: 20, cat: "第三部", cond: function(d){ return d === 0; } },
+        { title: "床の水拭き", points: 30, cat: "第三部", cond: function(d){ return d === 0; } },
+        { title: "買い物リストと食材解凍", points: 10, cat: "第三部" },
+        { title: "手拭きタオル・製氷の水", points: 10, cat: "第二部" },
+        { title: "みそ汁の鍋を洗う", points: 5, cat: "第一部" },
+        { title: "食洗機スタート", points: 5, cat: "第一部" },
+        { title: "炊飯ジャー洗う", points: 5, cat: "第一部" },
+        { title: "食器乾燥スタート", points: 5, cat: "第二部" },
+        { title: "みそ汁を冷蔵庫へ", points: 5, cat: "第三部" },
+        { title: "炊飯器のセット", points: 20, cat: "第三部" },
+        { title: "食器をしまう", points: 20, cat: "第三部" },
+        { title: "みんなのスマホをしまう", points: 5, cat: "第一部" },
+        { title: "マモルームの電源を切る", points: 0, cat: "第一部", cond: function(d){ var m = new Date().getMonth() + 1; return m >= 4 && m <= 10; } },
+        { title: "5分タイム(ゆうま)", points: 20, cat: "第二部" },
+        { title: "5分タイム(しおり)", points: 20, cat: "第二部" },
+        { title: "自分の部屋の掃除(ゆうま)", points: 0, cat: "第二部" },
+        { title: "自分の部屋の掃除(しおり)", points: 0, cat: "第二部" },
+        { title: "弁当・外出準備(ゆうま)", points: 0, cat: "第三部" },
+        { title: "箸を弁当に添える(ゆうま)", points: 0, cat: "第三部", cond: function(d){ return d >= 1 && d <= 5; } },
+        { title: "弁当・外出準備(しおり)", points: 0, cat: "第三部" },
+        { title: "トイレ掃除", points: 30, cat: "第三部", cond: function(d){ return d === 0 || d === 2 || d === 4 || d === 6; } },
+        { title: "リビング廊下洗面所の掃除", points: 20, cat: "第三部" },
+        { title: "エアコン・電気・カーテン", points: 5, cat: "第一部" },
+        { title: "洗濯物をわける", points: 15, cat: "第二部" },
+        { title: "洗濯物をたたむ", points: 15, cat: "第三部" },
+        { title: "洗濯物をしまう", points: 5, cat: "第三部" },
+        { title: "歯磨き確認", points: 0, cat: "第一部" },
+        { title: "日記を書く", points: 0, cat: "第一部" },
+        { title: "風呂掃除", points: 10, cat: "第二部" },
+        { title: "予定を書く／週間・日", points: 20, cat: "第二部" },
+        { title: "月に1回のやることをやる", points: 10, cat: "第二部" },
+    ];
+
+    var tasks = [];
+    var weekdayPanelOpen = false;
+    var ticketModalShownForCurrentRun = false;
+    var TICKET_ACK_KEY = "kaji_ticket_ack";
+
+    // ========== 予約ガチャ ==========
+
+    // チェック状態（モーダルを開くたびに初期化）
+    var omakaseChecked = {};
+
+    function openOmakaseModal() {
+        // 初期チェック：全員ONで開く
+        omakaseChecked = {};
+        for (var i = 0; i < players.length; i++) {
+            omakaseChecked[players[i].name] = true;
+        }
+        renderOmakasePlayerList();
+        document.getElementById("omakaseResultBox").classList.remove("is-visible");
+        document.getElementById("omakaseResultBox").innerHTML = "";
+        document.getElementById("omakaseModal").style.display = "flex";
+    }
+
+    function closeOmakaseModal() {
+        document.getElementById("omakaseModal").style.display = "none";
+    }
+
+    function renderOmakasePlayerList() {
+        var list = document.getElementById("omakasePlayerList");
+        list.innerHTML = "";
+        for (var i = 0; i < players.length; i++) {
+            (function(p) {
+                var row = document.createElement("div");
+                row.className = "omakase-player-row" + (omakaseChecked[p.name] ? " is-checked" : "");
+                row.setAttribute("role", "checkbox");
+                row.setAttribute("aria-checked", omakaseChecked[p.name] ? "true" : "false");
+                row.setAttribute("tabindex", "0");
+
+                var dot = document.createElement("div");
+                dot.className = "omakase-player-dot";
+                dot.style.background = omakaseChecked[p.name] ? p.color : "";
+                dot.style.borderColor = omakaseChecked[p.name] ? p.color : "#ccc";
+
+                var name = document.createElement("div");
+                name.className = "omakase-player-name";
+                name.style.color = p.color;
+                name.innerText = p.name;
+
+                row.appendChild(dot);
+                row.appendChild(name);
+                row.appendChild(document.createElement("div")); // spacer
+
+                row.onclick = function() {
+                    omakaseChecked[p.name] = !omakaseChecked[p.name];
+                    renderOmakasePlayerList();
+                    updateOmakaseRunBtn();
+                };
+                row.onkeydown = function(e) {
+                    if (e.key === " " || e.key === "Enter") { row.click(); e.preventDefault(); }
+                };
+                list.appendChild(row);
+            })(players[i]);
+        }
+        updateOmakaseRunBtn();
+    }
+
+    function updateOmakaseRunBtn() {
+        var btn = document.getElementById("omakaseRunBtn");
+        var anyChecked = false;
+        for (var i = 0; i < players.length; i++) {
+            if (omakaseChecked[players[i].name]) { anyChecked = true; break; }
+        }
+        btn.disabled = !anyChecked;
+    }
+
+    function runOmakase() {
+        // 対象プレイヤー一覧
+        var targets = [];
+        for (var i = 0; i < players.length; i++) {
+            if (omakaseChecked[players[i].name]) targets.push(players[i].name);
+        }
+        if (targets.length === 0) return;
+
+        // 振り分け対象タスク：未完了 かつ 予約なし（デフォルト・手動問わず）
+        var pool = [];
+        for (var t = 0; t < tasks.length; t++) {
+            if (tasks[t].status === "todo" && !tasks[t].reservedBy) {
+                pool.push(tasks[t]);
+            }
+        }
+
+        if (pool.length === 0) {
+            showOmakaseResult(targets, {});
+            return;
+        }
+
+        // ポイントが均等になるよう Greedy 配分
+        // まずプールをポイント降順でシャッフルしてから配分（同ポイント内はランダム）
+        pool = shuffleArray(pool);
+        pool.sort(function(a, b) { return b.points - a.points; });
+
+        var assignment = {}; // taskId -> playerName
+        var totals = {};
+        for (var j = 0; j < targets.length; j++) totals[targets[j]] = 0;
+
+        for (var k = 0; k < pool.length; k++) {
+            // 現時点で合計ポイントが最小のプレイヤーに割り当てる
+            var minPlayer = targets[0];
+            for (var m = 1; m < targets.length; m++) {
+                if (totals[targets[m]] < totals[minPlayer]) minPlayer = targets[m];
+            }
+            assignment[pool[k].id] = minPlayer;
+            totals[minPlayer] += pool[k].points;
+        }
+
+        // tasks に反映
+        var omakaseChanges = [];
+        for (var ti = 0; ti < tasks.length; ti++) {
+            if (assignment.hasOwnProperty(tasks[ti].id)) {
+                omakaseChanges.push({ taskId: tasks[ti].id, prevReservedBy: tasks[ti].reservedBy });
+                tasks[ti].reservedBy = assignment[tasks[ti].id];
+                playReserveSound();
+            }
+        }
+        if (omakaseChanges.length > 0) {
+            pushHistory({ type: "omakase", changes: omakaseChanges });
+        }
+
+        save();
+        showOmakaseResult(targets, totals);
+        render();
+    }
+
+    function showOmakaseResult(targets, totals) {
+        var box = document.getElementById("omakaseResultBox");
+        if (Object.keys(totals).length === 0) {
+            box.innerHTML = "<div style='text-align:center; color:#888;'>振り分けられる未予約タスクがありませんでした。</div>";
+        } else {
+            var html = "<div style='font-weight:bold; margin-bottom:8px;'>✅ 振り分け完了！</div>";
+            for (var i = 0; i < targets.length; i++) {
+                var name = targets[i];
+                var color = "#333";
+                for (var j = 0; j < players.length; j++) {
+                    if (players[j].name === name) color = players[j].color;
+                }
+                html += '<div class="omakase-result-row">' +
+                    '<span class="omakase-result-name" style="color:' + color + '">' + name + '</span>' +
+                    '<span class="omakase-result-pts">予約ポイント +' + (totals[name] || 0) + 'pt</span>' +
+                    '</div>';
+            }
+            box.innerHTML = html;
+        }
+        box.classList.add("is-visible");
+    }
+
+    function shuffleArray(arr) {
+        var a = arr.slice();
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+        }
+        return a;
+    }
+
+    // ========== 既存ロジック ==========
+
+    function getTicketAck() {
+        try { return localStorage.getItem(TICKET_ACK_KEY) === "1"; } catch (e) { return false; }
+    }
+    function setTicketAck(on) {
+        try {
+            if (on) localStorage.setItem(TICKET_ACK_KEY, "1");
+            else localStorage.removeItem(TICKET_ACK_KEY);
+        } catch (e) {}
+    }
+
+    function openTicketModal() {
+        document.getElementById("playerModal").style.display = "none";
+        document.getElementById("ticketModal").style.display = "flex";
+    }
+    function closeTicketModal() {
+        document.getElementById("ticketModal").style.display = "none";
+    }
+    function onTicketModalYes() {
+        setTicketAck(true);
+        closeTicketModal();
+        render();
+    }
+    var currentTaskId = null;
+    var currentMode = "";
+    var sfxCtx = null;
+    var actionHistory = [];
+    var MAX_HISTORY = 50;
+
+    function findTask(id) {
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === id) return tasks[i];
+        }
+        return null;
+    }
+
+    function getTaskSnapshot(taskId) {
+        var t = findTask(taskId);
+        if (!t) return null;
+        return { status: t.status, reservedBy: t.reservedBy, doneBy: t.doneBy };
+    }
+
+    function applySnapshot(taskId, snap) {
+        var t = findTask(taskId);
+        if (!t || !snap) return false;
+        t.status = snap.status;
+        t.reservedBy = snap.reservedBy;
+        t.doneBy = snap.doneBy;
+        return true;
+    }
+
+    function pushHistory(entry) {
+        actionHistory.push(entry);
+        if (actionHistory.length > MAX_HISTORY) actionHistory.shift();
+    }
+
+    function updateUndoButton() {
+        var btn = document.getElementById("btn-undo-last");
+        if (!btn) return;
+        btn.disabled = actionHistory.length === 0;
+    }
+
+    function undoLastAction() {
+        if (actionHistory.length === 0) return;
+        var entry = actionHistory.pop();
+        if (entry.type === "omakase") {
+            for (var i = 0; i < entry.changes.length; i++) {
+                var c = entry.changes[i];
+                var ot = findTask(c.taskId);
+                if (ot) ot.reservedBy = c.prevReservedBy;
+            }
+            playCancelSound();
+        } else {
+            applySnapshot(entry.taskId, entry.prev);
+            if (entry.type === "reserve") playCancelSound();
+            else if (entry.type === "complete") playUndoCompleteSound();
+            else if (entry.type === "clearReserve") playReserveSound();
+            else if (entry.type === "undoComplete") playTaskDoneSound();
+        }
+        save();
+        render();
+    }
+
+    function getSfxCtx() {
+        if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (sfxCtx.state === "suspended") sfxCtx.resume();
+        return sfxCtx;
+    }
+
+    function playReserveSound() {
+        try {
+            var ctx = getSfxCtx();
+            var t0 = ctx.currentTime;
+            function beep(freq, start, dur) {
+                var o = ctx.createOscillator();
+                var g = ctx.createGain();
+                o.type = "sine";
+                o.frequency.value = freq;
+                o.connect(g);
+                g.connect(ctx.destination);
+                g.gain.setValueAtTime(0, start);
+                g.gain.linearRampToValueAtTime(0.12, start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+                o.start(start);
+                o.stop(start + dur + 0.02);
+            }
+            beep(523.25, t0, 0.11);
+            beep(659.25, t0 + 0.08, 0.14);
+        } catch (e) {}
+    }
+
+    function playCancelSound() {
+        try {
+            var ctx = getSfxCtx();
+            var t0 = ctx.currentTime;
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.type = "sine";
+            o.frequency.setValueAtTime(380, t0);
+            o.frequency.exponentialRampToValueAtTime(180, t0 + 0.22);
+            o.connect(g);
+            g.connect(ctx.destination);
+            g.gain.setValueAtTime(0, t0);
+            g.gain.linearRampToValueAtTime(0.11, t0 + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+            o.start(t0);
+            o.stop(t0 + 0.32);
+        } catch (e) {}
+    }
+
+    function playTaskDoneSound() {
+        try {
+            var ctx = getSfxCtx();
+            var t0 = ctx.currentTime;
+            function beep(freq, start, dur, vol) {
+                var o = ctx.createOscillator();
+                var g = ctx.createGain();
+                o.type = "sine";
+                o.frequency.value = freq;
+                o.connect(g);
+                g.connect(ctx.destination);
+                g.gain.setValueAtTime(0, start);
+                g.gain.linearRampToValueAtTime(vol, start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+                o.start(start);
+                o.stop(start + dur + 0.02);
+            }
+            beep(523.25, t0, 0.12, 0.13);
+            beep(659.25, t0 + 0.09, 0.12, 0.13);
+            beep(783.99, t0 + 0.18, 0.2, 0.15);
+        } catch (e) {}
+    }
+
+    function playUndoCompleteSound() {
+        try {
+            var ctx = getSfxCtx();
+            var t0 = ctx.currentTime;
+            function beep(freq, start, dur) {
+                var o = ctx.createOscillator();
+                var g = ctx.createGain();
+                o.type = "sine";
+                o.frequency.value = freq;
+                o.connect(g);
+                g.connect(ctx.destination);
+                g.gain.setValueAtTime(0, start);
+                g.gain.linearRampToValueAtTime(0.1, start + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+                o.start(start);
+                o.stop(start + dur + 0.02);
+            }
+            beep(392.0, t0, 0.11);
+            beep(293.66, t0 + 0.08, 0.14);
+        } catch (e) {}
+    }
+
+    function init() {
+        document.getElementById('today-title').innerText = "朝の家事リスト（" + days[todayNum] + "）";
+        var saved = localStorage.getItem('kaji_vfinal');
+        if (saved) {
+            tasks = JSON.parse(saved);
+        } else {
+            resetTasks();
+        }
+        render();
+    }
+
+    function resetTasks() {
+        tasks = [];
+        actionHistory = [];
+        setTicketAck(false);
+        ticketModalShownForCurrentRun = false;
+        closeTicketModal();
+        for (var i = 0; i < masterTasks.length; i++) {
+            var mt = masterTasks[i];
+            if (!mt.cond || mt.cond(todayNum)) {
+                var def = null;
+                if (mt.title.indexOf("ゆうま") !== -1) def = "ゆうま";
+                if (mt.title.indexOf("しおり") !== -1) def = "しおり";
+                tasks.push({ id: i, title: mt.title, points: mt.points, cat: mt.cat, status: "todo", reservedBy: def, doneBy: null });
+            }
+        }
+        save();
+    }
+
+    function save() { localStorage.setItem('kaji_vfinal', JSON.stringify(tasks)); }
+
+    function openPlayerSelect(id, mode) {
+        currentTaskId = id;
+        currentMode = mode;
+        var modal = document.getElementById('playerModal');
+        var options = document.getElementById('playerOptions');
+        document.getElementById('modalTitle').innerText = (mode === 'reserve' ? "だれが予約？" : "だれがやった？");
+        options.innerHTML = "";
+        for (var i = 0; i < players.length; i++) {
+            var p = players[i];
+            var btn = document.createElement('button');
+            btn.innerText = p.name;
+            btn.style.background = p.color;
+            btn.style.color = "white";
+            btn.onclick = (function(name){
+                return function(){ selectPlayer(name); };
+            })(p.name);
+            options.appendChild(btn);
+        }
+        document.getElementById('modalReserveClear').style.display = (mode === 'reserve' ? 'block' : 'none');
+        modal.style.display = "flex";
+    }
+
+    function clearReservation(id) {
+        var hadReserve = false;
+        var prev = null;
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === id) {
+                hadReserve = !!tasks[i].reservedBy;
+                if (hadReserve) prev = getTaskSnapshot(id);
+                tasks[i].reservedBy = null;
+                break;
+            }
+        }
+        if (hadReserve) {
+            pushHistory({ type: "clearReserve", taskId: id, prev: prev });
+            playCancelSound();
+        }
+        save();
+        render();
+    }
+
+    function clearReservationFromModal() {
+        if (currentTaskId !== null) clearReservation(currentTaskId);
+        closeModal();
+    }
+
+    function selectPlayer(name) {
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === currentTaskId) {
+                var prev = getTaskSnapshot(currentTaskId);
+                if (currentMode === 'reserve') {
+                    tasks[i].reservedBy = name;
+                    pushHistory({ type: "reserve", taskId: currentTaskId, playerName: name, prev: prev });
+                    playReserveSound();
+                } else {
+                    tasks[i].status = "done";
+                    tasks[i].doneBy = name;
+                    pushHistory({ type: "complete", taskId: currentTaskId, playerName: name, prev: prev });
+                    playTaskDoneSound();
+                }
+                break;
+            }
+        }
+        save(); render(); closeModal();
+    }
+
+    function closeModal() { document.getElementById('playerModal').style.display = "none"; }
+    function confirmReset() { if (confirm("リストを新しく作り直しますか？")) { resetTasks(); render(); } }
+    function resetAndReload() {
+        if (confirm("日付を最新にして、リストを作り直しますか？")) {
+            localStorage.removeItem('kaji_vfinal');
+            location.reload();
+        }
+    }
+
+    function undoComplete(id) {
+        var changed = false;
+        var prev = null;
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === id) {
+                prev = getTaskSnapshot(id);
+                tasks[i].status = "todo";
+                tasks[i].doneBy = null;
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            pushHistory({ type: "undoComplete", taskId: id, prev: prev });
+            playUndoCompleteSound();
+        }
+        save();
+        render();
+    }
+
+    function applyWeekdayPanelVisibility() {
+        var p = document.getElementById("weekday-tasks-panel-body");
+        var b = document.getElementById("weekday-toggle-btn");
+        if (!p || !b) return;
+        p.classList.remove("weekday-tasks-panel--animating");
+        if (weekdayPanelOpen) {
+            p.classList.remove("weekday-tasks-panel--hidden");
+            p.setAttribute("aria-hidden", "false");
+            b.setAttribute("aria-expanded", "true");
+            b.textContent = "非表示";
+        } else {
+            p.classList.add("weekday-tasks-panel--hidden");
+            p.setAttribute("aria-hidden", "true");
+            b.setAttribute("aria-expanded", "false");
+            b.textContent = "表示";
+        }
+    }
+
+    function toggleWeekdayPanel() {
+        weekdayPanelOpen = !weekdayPanelOpen;
+        var p = document.getElementById("weekday-tasks-panel-body");
+        var b = document.getElementById("weekday-toggle-btn");
+        if (!p || !b) return;
+        if (weekdayPanelOpen) {
+            p.classList.remove("weekday-tasks-panel--hidden");
+            p.setAttribute("aria-hidden", "false");
+            b.setAttribute("aria-expanded", "true");
+            b.textContent = "非表示";
+            p.classList.remove("weekday-tasks-panel--animating");
+            void p.offsetWidth;
+            p.classList.add("weekday-tasks-panel--animating");
+            p.addEventListener("animationend", function onWeekdayAnimEnd() {
+                p.removeEventListener("animationend", onWeekdayAnimEnd);
+                p.classList.remove("weekday-tasks-panel--animating");
+            });
+        } else {
+            p.classList.remove("weekday-tasks-panel--animating");
+            p.classList.add("weekday-tasks-panel--hidden");
+            p.setAttribute("aria-hidden", "true");
+            b.setAttribute("aria-expanded", "false");
+            b.textContent = "表示";
+        }
+    }
+
+    function collectActiveDays(cond) {
+        var a = [];
+        for (var di = 0; di < 7; di++) {
+            if (cond(di)) a.push(di);
+        }
+        return a;
+    }
+
+    function arraysEqualDays(a, b) {
+        if (a.length !== b.length) return false;
+        for (var i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    }
+
+    function formatWeekdayTaskScope(cond) {
+        var active = collectActiveDays(cond);
+        if (active.length === 0) return "";
+        if (active.length === 1) {
+            return days[active[0]] + "曜日にしかやらないタスク";
+        }
+        if (arraysEqualDays(active, [1, 2, 3, 4, 5])) {
+            return "月曜日〜金曜日にしかやらないタスク";
+        }
+        if (arraysEqualDays(active, [0, 2, 4, 6])) {
+            return "日曜・火曜・木曜・土曜にしかやらないタスク";
+        }
+        var names = [];
+        for (var j = 0; j < active.length; j++) {
+            names.push(days[active[j]]);
+        }
+        return names.join("・") + "曜日にしかやらないタスク";
+    }
+
+    function renderWeekdayPanel() {
+        var el = document.getElementById("weekday-tasks-panel-body");
+        if (!el) return;
+        var out = '<div class="weekday-panel-sub">毎日やるタスクはこの一覧に含めません。下の行は、そのタスクが「どの曜日だけ」対象かを示します。</div>' +
+            '<div class="weekday-panel-grid">';
+        for (var d = 0; d < 7; d++) {
+            var lis = [];
+            for (var i = 0; i < masterTasks.length; i++) {
+                var mt = masterTasks[i];
+                if (!mt.cond) continue;
+                if (!mt.cond(d)) continue;
+                var scopeLine = formatWeekdayTaskScope(mt.cond);
+                lis.push("<li><span class=\"weekday-task-pts\">" + mt.points + "pt</span> " + mt.title +
+                    " <span class=\"weekday-task-cat\">(" + mt.cat + ")</span>" +
+                    "<span class=\"weekday-task-scope\">" + scopeLine + "</span></li>");
+            }
+            var isToday = d === todayNum;
+            out += "<div class=\"weekday-column" + (isToday ? " weekday-column-today" : "") + "\">";
+            out += "<div class=\"weekday-column-head\">" + days[d] + "曜日" +
+                (isToday ? "<span class=\"weekday-badge-today\">今日</span>" : "") + "</div>";
+            if (lis.length === 0) {
+                out += "<ul class=\"weekday-task-list\"><li class=\"weekday-column-empty\">この日の曜日限定タスクはありません</li></ul>";
+            } else {
+                out += "<ul class=\"weekday-task-list\">" + lis.join("") + "</ul>";
+            }
+            out += "</div>";
+        }
+        out += "</div>";
+        el.innerHTML = out;
+        applyWeekdayPanelVisibility();
+    }
+
+    function render() {
+        var main = document.getElementById('main-content');
+        var scores = { "ゆうま":0, "しおり":0, "じゅんこ":0, "たくや":0 };
+        var doneCount = 0;
+        var cats = ["第一部", "第二部", "第三部",];
+
+        main.innerHTML = "";
+        var html = "";
+
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].status === "done") {
+                scores[tasks[i].doneBy] += tasks[i].points;
+                doneCount++;
+            }
+        }
+
+        var reservedScores = { "ゆうま":0, "しおり":0, "じゅんこ":0, "たくや":0 };
+        for (var ri = 0; ri < tasks.length; ri++) {
+            var rt = tasks[ri];
+            if (rt.status === "todo" && rt.reservedBy && reservedScores.hasOwnProperty(rt.reservedBy)) {
+                reservedScores[rt.reservedBy] += rt.points;
+            }
+        }
+
+        var scoreHtml = "";
+        for (var j = 0; j < players.length; j++) {
+            var p = players[j];
+            var rv = reservedScores[p.name];
+            var reservedLine = '<div class="score-reserved">（' + rv + '）</div>';
+            scoreHtml += '<div class="score-card" style="border-color:'+p.color+'">' +
+                         '<div style="font-size:0.7rem; color:'+p.color+'">'+p.name+'</div>' +
+                         '<div class="score-points">'+scores[p.name]+'</div>' +
+                         reservedLine +
+                         '</div>';
+        }
+        document.getElementById('scoreboard').innerHTML = scoreHtml;
+        document.getElementById('sticky-scoreboard').innerHTML = scoreHtml;
+
+        var total = tasks.length || 1;
+        var percent = Math.floor((doneCount / total) * 100);
+        var percentText = "進捗 " + percent + "%";
+        document.getElementById('progress-percent').innerText = percentText;
+        document.getElementById('sticky-progress-percent').innerText = percentText;
+        var barHtml = "";
+        for (var k = 0; k < players.length; k++) {
+            var pk = players[k];
+            var pDone = 0;
+            for (var m = 0; m < tasks.length; m++) { if(tasks[m].status === "done" && tasks[m].doneBy === pk.name) pDone++; }
+            var w = (pDone / total) * 100;
+            barHtml += '<div class="progress-segment" style="width:'+w+'%; background:'+pk.color+'"></div>';
+        }
+        document.getElementById('progress-container').innerHTML = barHtml;
+        document.getElementById('sticky-progress-container').innerHTML = barHtml;
+
+        for (var c = 0; c < cats.length; c++) {
+            var catName = cats[c];
+            var catHtml = '<div class="category-title">'+catName+'</div><div class="task-grid">';
+            var hasTask = false;
+            for (var t = 0; t < tasks.length; t++) {
+                var task = tasks[t];
+                if (task.cat === catName && task.status === "todo") {
+                    hasTask = true;
+                    var resColor = "";
+                    if (task.reservedBy) {
+                        for (var x = 0; x < players.length; x++) { if (players[x].name === task.reservedBy) resColor = players[x].color; }
+                    }
+                    var isWeekday = !!(masterTasks[task.id] && masterTasks[task.id].cond);
+                    catHtml += '<div class="task-card' + (isWeekday ? ' task-card--weekday' : '') + '">' +
+                               '<div><div class="task-title">'+task.title+'</div><span class="task-points">'+task.points+'pt</span>' +
+                               (task.reservedBy ? '<div class="reserved-label" style="background:'+resColor+'">📌 '+task.reservedBy+'</div>' : '') +
+                               '</div><div class="btn-group">' +
+                               '<button onclick="openPlayerSelect('+task.id+',\'reserve\')">予約</button>' +
+                               '<button class="btn-done" onclick="openPlayerSelect('+task.id+',\'done\')">完了</button>' +
+                               '</div></div>';
+                }
+            }
+            catHtml += '</div>';
+            if (hasTask) html += catHtml;
+        }
+
+        var doneHtml = "";
+        var doneTasks = [];
+        for (var dt = 0; dt < tasks.length; dt++) {
+            if (tasks[dt].status === "done") doneTasks.push(tasks[dt]);
+        }
+        if (doneTasks.length > 0) {
+            doneHtml += '<div class="category-title category-title-done">完了済み（' + doneTasks.length + '）</div>';
+
+            function appendDoneCardsForList(list) {
+                doneHtml += '<div class="task-grid">';
+                for (var di = 0; di < list.length; di++) {
+                    var dtask = list[di];
+                    var isDoneWeekday = !!(masterTasks[dtask.id] && masterTasks[dtask.id].cond);
+                    doneHtml += '<div class="task-card task-card-done' + (isDoneWeekday ? ' task-card--weekday' : '') + '">' +
+                        '<div><div class="task-title">' + dtask.title + '</div><span class="task-points">' + dtask.points + 'pt</span></div>' +
+                        '<div class="btn-group">' +
+                        '<button type="button" class="btn-undo" onclick="undoComplete(' + dtask.id + ')">未完了にする</button>' +
+                        '</div></div>';
+                }
+                doneHtml += '</div>';
+            }
+
+            for (var pi = 0; pi < players.length; pi++) {
+                var pl = players[pi];
+                var playerDone = [];
+                for (var pdi = 0; pdi < doneTasks.length; pdi++) {
+                    if (doneTasks[pdi].doneBy === pl.name) playerDone.push(doneTasks[pdi]);
+                }
+                if (playerDone.length === 0) continue;
+                doneHtml += '<div class="done-by-title" style="border-left-color:' + pl.color + '"><span style="color:' + pl.color + '">' + pl.name + '</span>（' + playerDone.length + '）</div>';
+                appendDoneCardsForList(playerDone);
+            }
+
+            var otherDone = [];
+            for (var oi = 0; oi < doneTasks.length; oi++) {
+                var ot = doneTasks[oi];
+                var knownPlayer = false;
+                if (ot.doneBy) {
+                    for (var pk2 = 0; pk2 < players.length; pk2++) {
+                        if (ot.doneBy === players[pk2].name) { knownPlayer = true; break; }
+                    }
+                }
+                if (!knownPlayer) otherDone.push(ot);
+            }
+            if (otherDone.length > 0) {
+                doneHtml += '<div class="done-by-title" style="border-left-color:#888"><span style="color:#666">その他・未記名</span>（' + otherDone.length + '）</div>';
+                appendDoneCardsForList(otherDone);
+            }
+        }
+
+        var topHtml = html;
+        if (!topHtml && tasks.length === 0) {
+            topHtml = '<div style="text-align:center; padding:50px; font-size:1.2rem;">タスクがありません</div>';
+        } else if (!topHtml && tasks.length > 0 && doneCount === tasks.length) {
+            if (getTicketAck()) {
+                topHtml = '<div class="all-clear-wrap">' +
+                    '<div class="all-clear-main">✨ すべての家事が完了しました！ ✨</div>' +
+                    '<div class="all-clear-sub">チケットの受け取りまで確認済みです。本日の朝の家事はすべて完了です。</div></div>';
+            } else {
+                topHtml = "";
+            }
+        }
+
+        var allDone = tasks.length > 0 && doneCount === tasks.length;
+        if (!allDone) {
+            ticketModalShownForCurrentRun = false;
+            setTicketAck(false);
+        } else if (!getTicketAck() && !ticketModalShownForCurrentRun) {
+            ticketModalShownForCurrentRun = true;
+            setTimeout(function () { openTicketModal(); }, 200);
+        }
+
+        main.innerHTML = topHtml + doneHtml;
+        renderWeekdayPanel();
+        updateUndoButton();
+    }
+
+    init();
+
+    (function() {
+        var header = document.querySelector('.header-grid');
+        var bar = document.getElementById('sticky-stats');
+        function onScroll() {
+            if (header.getBoundingClientRect().bottom < 0) {
+                bar.classList.add('is-visible');
+            } else {
+                bar.classList.remove('is-visible');
+            }
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+    })();
+</script>
+</body>
+</html>
